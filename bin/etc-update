@@ -17,6 +17,7 @@ if type -P gsed >/dev/null ; then
 fi
 
 get_config() {
+: ${ETC_UPDATE_CONFIG:=${PORTAGE_CONFIGROOT}etc/etc-update.conf}
 	# the sed here does:
 	#  - strip off comments
 	#  - match lines that set item in question
@@ -31,7 +32,7 @@ get_config() {
 		-e 's:[[:space:]]*#.*$::' \
 		-e "/^[[:space:]]*$item[[:space:]]*=/{s:[^=]*=[[:space:]]*\([\"']\{0,1\}\)\(.*\)\1:\2:;h}" \
 		-e '${g;p}' \
-		"${PORTAGE_CONFIGROOT}"etc/etc-update.conf)
+		"${ETC_UPDATE_CONFIG}")
 }
 
 diff_command() {
