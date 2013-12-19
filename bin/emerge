@@ -1604,7 +1604,7 @@ class depgraph:
 		"""
 
 		# unused parameters
-		rev_dep = False
+		# rev_dep = False
 
 		mytype, myroot, mykey = mybigkey
 
@@ -1711,8 +1711,12 @@ class depgraph:
 					# way.
 					if existing_node != myparent or \
 						(priority.buildtime and not priority.satisfied):
-						self.digraph.addnode(existing_node, myparent,
-							priority=priority)
+						if rev_dep and myparent:
+							self.digraph.addnode(myparent, existing_node,
+									     priority=priority)
+						else:
+							self.digraph.addnode(existing_node, myparent,
+									     priority=priority)
 					return 1
 				else:
 					if jbigkey in self._slot_collision_nodes:
@@ -1876,7 +1880,7 @@ class depgraph:
 				# on a package being present AND must be built after that package.
 				if not self.select_dep(myroot, edepend["PDEPEND"], myparent=mp,
 					myuse=myuse, priority=DepPriority(runtime_post=True),
-					parent_arg=arg):
+					parent_arg=arg, rev_deps=True):
 					return 0
 		except ValueError, e:
 			pkgs = e.args[0]
