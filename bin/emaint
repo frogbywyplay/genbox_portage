@@ -1,4 +1,4 @@
-#!/usr/bin/python -O
+#!/usr/bin/python2.5 -O
 
 import sys, os
 from optparse import OptionParser, OptionValueError

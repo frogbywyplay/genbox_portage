@@ -1,4 +1,4 @@
-#!/usr/bin/python -O
+#!/usr/bin/python2.5 -O
 # Copyright 1999-2006 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
