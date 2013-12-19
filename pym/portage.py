@@ -1359,9 +1359,13 @@ class config:
 			self.configdict["globals"]=self.configlist[-1]
 
 			self.make_defaults_use = []
-			self.mygcfg = {}
+			if target_root is not None:
+				self.mygcfg = {"ROOT" : target_root}
+			else:
+				self.mygcfg = {}
+			
 			if self.profiles:
-				mygcfg_dlists = [getconfig(os.path.join(x, "make.defaults")) \
+				mygcfg_dlists = [getconfig(os.path.join(x, "make.defaults"),mykeys=self.mygcfg) \
 					for x in self.profiles]
 				for cfg in mygcfg_dlists:
 					if cfg:
@@ -1374,10 +1378,16 @@ class config:
 					self.mygcfg = {}
 			self.configlist.append(self.mygcfg)
 			self.configdict["defaults"]=self.configlist[-1]
-
+			
+			if target_root is not None:
+				self.mygcfg = {'ROOT': target_root}
+			else:
+				self.mygcfg = {}
+			
 			self.mygcfg = getconfig(
 				os.path.join(config_root, MAKE_CONF_FILE.lstrip(os.path.sep)),
-				allow_sourcing=True)
+				allow_sourcing=True,
+				mykeys=self.mygcfg)
 			if self.mygcfg is None:
 				self.mygcfg = {}
 

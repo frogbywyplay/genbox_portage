@@ -291,8 +291,9 @@ def writedict(mydict,myfilename,writekey=True):
 		return 0
 	return 1
 
-def getconfig(mycfg, tolerant=0, allow_sourcing=False, expand=True):
-	mykeys={}
+def getconfig(mycfg, tolerant=0, allow_sourcing=False, expand=True, mykeys=None):
+	if mykeys is None:
+		mykeys={}
 	try:
 		f=open(mycfg,'r')
 	except IOError, e:
