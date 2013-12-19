@@ -1613,11 +1613,10 @@ class config:
 				new_ov = []
 				for ov in overlays:
 					ov = normalize_path(ov)
-					if os.path.isdir(ov):
-						new_ov.append(ov)
-					else:
-						writemsg("!!! Invalid PORTDIR_OVERLAY" + \
-							" (not a dir): '%s'\n" % ov, noiselevel=-1)
+					# Wyplay: don't check anymore if ov exits
+					# we could need a first sync before
+					new_ov.append(ov)
+
 				self["PORTDIR_OVERLAY"] = " ".join(new_ov)
 				self.backup_changes("PORTDIR_OVERLAY")
 
