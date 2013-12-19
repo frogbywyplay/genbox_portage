@@ -4007,12 +4007,18 @@ def prepare_build_dirs(myroot, mysettings, cleanup):
 
 	mydirs = [os.path.dirname(mysettings["PORTAGE_BUILDDIR"])]
 	mydirs.append(os.path.dirname(mydirs[-1]))
+	restrict = mysettings.get("PORTAGE_RESTRICT","").split()
 
 	try:
 		for mydir in mydirs:
 			portage_util.ensure_dirs(mydir)
 			portage_util.apply_secpass_permissions(mydir,
 				gid=portage_gid, uid=portage_uid, mode=070, mask=0)
+		if not os.path.exists(mysettings["PORTAGE_BUILDDIR"]) and \
+			"tmpfsbuild" in mysettings.features and \
+			"tmpfsbuild" not in restrict:
+			portage_util.ensure_dirs(mysettings["PORTAGE_BUILDDIR"])
+			os.system("mount -t tmpfs -o size=%s tmpfs %s" % (mysettings.get("PORTAGE_TMPFS_SIZE", "2g"), mysettings["PORTAGE_BUILDDIR"]))
 		for dir_key in ("PORTAGE_BUILDDIR", "HOME", "PKG_LOGDIR", "T"):
 			"""These directories don't necessarily need to be group writable.
 			However, the setup phase is commonly run as a privileged user prior
@@ -4050,7 +4056,6 @@ def prepare_build_dirs(myroot, mysettings, cleanup):
 	dirmode  = 02070
 	filemode =   060
 	modemask =    02
-	restrict = mysettings.get("PORTAGE_RESTRICT","").split()
 	from portage_data import secpass
 	droppriv = secpass >= 2 and \
 		"userpriv" in mysettings.features and \

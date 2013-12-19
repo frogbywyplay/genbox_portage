@@ -719,6 +719,9 @@ dyn_clean() {
 	rm -rf "${PORTAGE_BUILDDIR}/distdir"
 
 	if [ -z "$(find "${PORTAGE_BUILDDIR}" -mindepth 1 -maxdepth 1)" ]; then
+                hasq tmpfsbuild $FEATURES && \
+		   ! hasq tmpfsbuild $RESTRICT && \
+		   umount -l "${PORTAGE_BUILDDIR}"
 		rmdir "${PORTAGE_BUILDDIR}"
 	fi
 
