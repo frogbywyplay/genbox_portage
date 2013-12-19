@@ -2675,7 +2675,13 @@ class config:
 			for x in self["PORTDIR_OVERLAY"].split():
 				profileroots.insert(0, os.path.join(x, "profiles"))
 			thirdparty_lists = [grabdict(os.path.join(x, "thirdpartymirrors")) for x in profileroots]
-			self._thirdpartymirrors = stack_dictlist(thirdparty_lists, incremental=True)
+			_thirdpartymirrors = stack_dictlist(thirdparty_lists, incremental=True)
+			# substiture some variables
+			self._thirdpartymirrors = {}
+			for kk in _thirdpartymirrors.keys():
+				self._thirdpartymirrors[kk] = []
+				for ii in _thirdpartymirrors[kk]:
+					self._thirdpartymirrors[kk].append(varexpand(ii, self))
 		return self._thirdpartymirrors
 
 	def archlist(self):
