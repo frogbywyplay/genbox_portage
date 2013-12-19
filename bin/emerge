@@ -21,6 +21,7 @@ except KeyboardInterrupt:
 	sys.exit(1)
 
 import os, stat
+import subprocess
 
 os.environ["PORTAGE_LEGACY_GLOBALS"] = "false"
 try:
@@ -4976,10 +4977,227 @@ def show_blocker_docs_link():
 	print "http://www.gentoo.org/doc/en/handbook/handbook-x86.xml?full=1#blocked"
 	print
 
+class SCMSyncer(object):
+	def __init__(self, settings, myportdir_id, myportdir):
+		self.uri = settings.get("PORTAGE_" + myportdir_id + "_URI")
+		self.branch = settings.get("PORTAGE_" + myportdir_id + "_BRANCH")
+		self.revision = settings.get("PORTAGE_" + myportdir_id + "_REVISION")
+		self.settings = settings
+		self.myportdir_id = myportdir_id
+		self.myportdir = myportdir
+
+	def show(self):
+		print "  URI:", self.uri
+		print "  BRANCH:", self.branch
+		print "  REVISION:", self.revision
+	
+	def sync(self):
+		# Must be implemented in derived class
+		pass
+
+class SVNSyncer(SCMSyncer):
+	def __init__(self, settings, myportdir_id, myportdir):
+		SCMSyncer.__init__(self, settings, myportdir_id, myportdir)
+
+	def sync(self):
+		print "Syncing with SVN"
+		myportdir = self.myportdir
+		svnoption = ""
+		if self.revision:
+			svnoption += "-r " + self.revision
+		if not os.path.exists(myportdir + "/.svn"):
+			# initial checkout
+			try:
+				os.rmdir(myportdir)
+			except OSError, e:
+				if e.errno != errno.ENOENT:
+					sys.stderr.write(
+						"!!! existing '%s' directory; exiting.\n" % myportdir)
+					sys.exit(1)
+				del e
+			if portage.spawn("svn checkout "+svnoption+" "+ self.uri+" "+myportdir, self.settings,free=1):
+				print "!!! svn checkout error; exiting."
+				sys.exit(1)
+		else:
+			#svn update
+			print ">>> Starting svn update with "+ self.uri+"..."
+			retval = portage.spawn("cd '%s'; svn update %s" % \
+				(myportdir, svnoption) , self.settings, free=1)
+			if retval != os.EX_OK:
+				sys.exit(retval)
+
+
+class GITSyncer(SCMSyncer):
+	def __init__(self, settings, myportdir_id, myportdir):
+		SCMSyncer.__init__(self, settings, myportdir_id, myportdir)
+		self.wc_branch = "wip"
+
+	def initial_import(self):
+		print "Doing initial import"
+		myportdir = self.myportdir
+		try:
+			os.rmdir(myportdir)
+		except OSError, e:
+			if e.errno != errno.ENOENT:
+				sys.stderr.write(
+					"!!! existing '%s' directory; exiting.\n" % myportdir)
+				sys.exit(1)
+			del e				
+		# initialize git repository
+		if portage.spawn("/usr/bin/git clone " + self.uri + " " + myportdir, self.settings, free=1):
+			sys.stderr.write("!!! git clone error; exiting.\n")
+			sys.exit(1)
+		else:
+			print ">>> Create " + self.wc_branch + " branch"
+			retval = portage.spawn("cd '%s'; /usr/bin/git checkout -b %s origin/%s" % \
+					       (myportdir, self.wc_branch, self.branch), self.settings, free = 1)
+                        if not self.revision:
+                                revision = ""
+                        else:
+                                revision = self.revision
+			print ">>> Updating ..."
+			retval = portage.spawn("cd '%s'; /usr/bin/git reset --hard %s" % (myportdir, revision), self.settings, free = 1)
+
+	def update(self):
+		print "Doing update"
+		myportdir = self.myportdir
+		# keep local modification and update with remote 
+		if portage.spawn("cd '%s'; /usr/bin/git stash ; /usr/bin/git pull " % (myportdir), self.settings, free = 1):
+			sys.stderr.write("!!! git pull error; exiting.\n")
+			sys.exit(1)
+		
+		# change to wanted revision
+		if self.revision == 'HEAD':
+			revision = 'origin/' + self.branch
+		else:
+			revision = self.revision
+		if revision:
+			# Reset to a specific revision
+			if portage.spawn("cd '%s'; /usr/bin/git reset --hard %s" % (myportdir, revision), self.settings, free = 1):
+				sys.stderr.write("!!! git reset error; exiting.\n")
+				sys.exit(1)
+			else:
+				print ">>> Update done"
+                else:
+			# Reset to the current HEAD
+			if portage.spawn("cd '%s'; /usr/bin/git reset --hard" % (myportdir), self.settings, free = 1):
+				sys.stderr.write("!!! git reset error; exiting.\n")
+				sys.exit(1)
+			else:
+				print ">>> Update done"
+	def sync(self):
+		print "Syncing with GIT"
+		if not os.path.exists(self.myportdir + "/.git"):
+			# initial checkout			
+			self.initial_import()
+		else:
+			self.update()
+
+		
+
+class HGSyncer(SCMSyncer):
+	def __init__(self, settings, myportdir_id, myportdir):
+		SCMSyncer.__init__(self, settings, myportdir_id, myportdir)
+	def initial_import(self):
+		print "Doing initial import"
+		myportdir = self.myportdir
+		try:
+			os.rmdir(myportdir)
+		except OSError, e:
+			if e.errno != errno.ENOENT:
+				sys.stderr.write(
+					"!!! existing '%s' directory; exiting.\n" % myportdir)
+				sys.exit(1)
+			del e
+		# initialize hg repository
+		if portage.spawn('/usr/bin/hg clone -U "%s" "%s"' % (self.uri, myportdir), self.settings, free=1):
+			sys.stderr.write("!!! hg clone error; exiting.\n")
+			sys.exit(1)
+	
+	def pull(self):
+		print ">>> Pulling changes ..."
+		# pull changeset from server
+		if portage.spawn('/usr/bin/hg -R "%s" pull' % (self.myportdir), self.settings, free = 1):
+			sys.stderr.write("!!! hg pull error; exiting.\n")
+			sys.exit(1)
+	
+	def update(self):
+		# change to wanted revision
+		ret, curr_rev = commands.getstatusoutput('/usr/bin/hg -R "%s" identify -i' % self.myportdir)
+		if ret:
+			sys.stderr.write("!!! hg identify ; exiting.\n")
+			sys.exit(1)
+		if curr_rev == self.revision:
+			print ">>> Overlay already at revision %s" % curr_rev
+			return
+		else:
+			if self.revision:
+				# Revision specific update
+				self.pull()
+				print ">>> Updating repository to %s ..." % self.revision 
+				if portage.spawn('/usr/bin/hg -R "%s" update -r "%s"' % (self.myportdir, self.revision), self.settings, free=1):
+					sys.stderr.write("!!! hg update ; exiting.\n")
+					sys.exit(1)
+				if self.branch:
+					# Check that we're on the good branch
+                                        p = subprocess.Popen(['/usr/bin/hg', '-R', self.myportdir, 'branch'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                        curr_branch, err = p.communicate()
+                                        curr_branch = curr_branch.splitlines()[0]
+                                        ret = p.returncode
+					if ret:
+						sys.stderr.write("!!! hg branch : %s; exiting.\n" % err)
+						sys.exit(1)
+					if curr_branch != self.branch:
+						sys.stderr.write("!!! updated revision not on %s branch\n" % self.branch)
+						sys.exit(1)
+			elif self.branch:
+				# Branch update
+				self.pull()
+				print ">>> Updating repository to the head of %s ..." % self.branch
+				if portage.spawn('/usr/bin/hg -R "%s" update -r "%s"' % (self.myportdir, self.branch), self.settings, free=1):
+					sys.stderr.write("!!! hg update ; exiting.\n")
+					sys.exit(1)
+			else:
+				sys.stderr.write("!!! branch or revision information must be provided.\n")
+				sys.exit(1)
+                        p = subprocess.Popen(['/usr/bin/hg', '-R', self.myportdir, 'identify', '--id'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        curr_rev, err = p.communicate()
+                        curr_rev = curr_rev.splitlines()[0]
+                        ret = p.returncode
+			if ret:
+				sys.stderr.write("!!! hg identify: %s ; exiting.\n" % err)
+				sys.exit(1)
+			self.revision = curr_rev
+			print ">>> Updated to %s" % curr_rev
+
+	def sync(self):
+		print "Syncing with HG"
+		if not os.path.exists(self.myportdir + "/.hg"):
+			# initial checkout
+			self.initial_import()
+		self.update()
+		
+
+PROTO_SYNCER={'svn': SVNSyncer,
+	      'git': GITSyncer,
+	      'mercurial': HGSyncer
+	      }
+
 def action_sync(settings, trees, mtimedb, myopts, myaction):
+	portages=[settings.get("PORTDIR", None)]
+	if "PORTDIR_OVERLAY" in settings:
+		portages.extend(settings.get("PORTDIR_OVERLAY", None).split())
+	for myportdir in portages:
+		if myportdir == settings.get("PORTDIR", None):
+			print ">>>","Updating main portage " + red(myportdir)
+		else:
+			print green(" * "),"Updating portage "+blue(bold(myportdir))
+		portdir_action_sync(settings, trees, mtimedb, myopts, myaction, myportdir)
+	
+def portdir_action_sync(settings, trees, mtimedb, myopts, myaction, myportdir):
 	xterm_titles = "notitles" not in settings.features
 	emergelog(xterm_titles, " === sync")
-	myportdir = settings.get("PORTDIR", None)
+	#myportdir = settings.get("PORTDIR", None)
 	if not myportdir:
 		sys.stderr.write("!!! PORTDIR is undefined.  Is /etc/make.globals missing?\n")
 		sys.exit(1)
@@ -4991,9 +5209,21 @@ def action_sync(settings, trees, mtimedb, myopts, myaction):
 	syncuri=settings["SYNC"].rstrip()
 	os.umask(0022)
 	updatecache_flg = False
+	myportdir_id = os.path.basename(myportdir).upper()
+	portage_proto = "PORTAGE_" + myportdir_id + "_PROTO"
 	if myaction == "metadata":
 		print "skipping sync"
 		updatecache_flg = True
+	elif settings.has_key(portage_proto):
+		proto = settings.get(portage_proto)
+		print red("%s uses %s for SCM" % (bold(myportdir), proto))
+		if not PROTO_SYNCER.has_key(proto):
+			print "UNKNOWN PROTOTYPE", proto
+			return
+		syncer = PROTO_SYNCER.get(proto)(settings, myportdir_id, myportdir)
+		syncer.show()
+		syncer.sync()
+		dosyncuri = myportdir
 	elif syncuri[:8]=="rsync://":
 		if not os.path.exists("/usr/bin/rsync"):
 			print "!!! /usr/bin/rsync does not exist, so rsync support is disabled."
@@ -5393,8 +5623,10 @@ def action_sync(settings, trees, mtimedb, myopts, myaction):
 				sys.exit(retval)
 		dosyncuri = syncuri
 	else:
-		print "!!! rsync setting: ",syncuri,"not recognized; exiting."
-		sys.exit(1)
+		#print "!!! rsync setting: ",syncuri,"not recognized; exiting."
+		print "!!! ", syncuri,"not recognized; continue ..."
+		dosyncuri = syncuri
+		#sys.exit(1)
 
 	if updatecache_flg and  \
 		myaction != "metadata" and \
