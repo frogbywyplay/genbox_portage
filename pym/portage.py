@@ -3925,7 +3925,8 @@ def doebuild_environment(myebuild, mydo, myroot, mysettings, debug, use_cache, m
 	# Sandbox needs cannonical paths.
 	mysettings["PORTAGE_TMPDIR"] = os.path.realpath(
 		mysettings["PORTAGE_TMPDIR"])
-	mysettings["BUILD_PREFIX"] = mysettings["PORTAGE_TMPDIR"]+"/portage"
+	if not "BUILD_PREFIX" in mysettings:
+		mysettings["BUILD_PREFIX"] = mysettings["PORTAGE_TMPDIR"]+"/portage"
 	mysettings["PKG_TMPDIR"]   = mysettings["PORTAGE_TMPDIR"]+"/binpkgs"
 	
 	# Package {pre,post}inst and {pre,post}rm may overlap, so they must have separate
