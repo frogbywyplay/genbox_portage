@@ -195,7 +195,7 @@ options=[
 "--fetchonly",    "--fetch-all-uri",
 "--getbinpkg",    "--getbinpkgonly",
 "--help",         "--ignore-default-opts",
-"--noconfmem",
+"--noconfmem",    "--no-ask",
 "--newuse",       "--nocolor",
 "--nodeps",       "--noreplace",
 "--nospinner",    "--oneshot",
@@ -5658,9 +5658,12 @@ def portdir_action_sync(settings, trees, mtimedb, myopts, myaction, myportdir):
 
 	if myaction != "metadata":
 		if os.access(portage.USER_CONFIG_PATH + "/bin/post_sync", os.X_OK):
+                        myenv = settings.environ().copy()
+                        if "--no-ask" in myopts:
+                                myenv['PORTAGE_NOASK'] = 'yes'
 			retval = portage.portage_exec.spawn(
 				[os.path.join(portage.USER_CONFIG_PATH, "bin", "post_sync"),
-				dosyncuri], env=settings.environ())
+				dosyncuri], env=myenv)
 			if retval != os.EX_OK:
 				print red(" * ")+bold("spawn failed of "+ portage.USER_CONFIG_PATH + "/bin/post_sync")
 
