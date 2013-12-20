@@ -8425,7 +8425,6 @@ class dblink:
 				errno.EEXIST, errno.ENOTEMPTY,
 				errno.EBUSY, errno.ENOENT,
 				errno.ENOTDIR, errno.EISDIR)
-			modprotect = os.path.join(self.vartree.root, "lib/modules/")
 
 			def unlink(file_name, lstatobj):
 				if bsd_chflags:
@@ -8481,14 +8480,6 @@ class dblink:
 						# don't unmerge it.
 						show_unmerge("---", "replaced", file_type, obj)
 						continue
-				# next line includes a tweak to protect modules from being unmerged,
-				# but we don't protect modules from being overwritten if they are
-				# upgraded. We effectively only want one half of the config protection
-				# functionality for /lib/modules. For portage-ng both capabilities
-				# should be able to be independently specified.
-				if obj.startswith(modprotect):
-					show_unmerge("---", "cfgpro", file_type, obj)
-					continue
 
 				# Don't unlink symlinks to directories here since that can
 				# remove /lib and /usr/lib symlinks.
