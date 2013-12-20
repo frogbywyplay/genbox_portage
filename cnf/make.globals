@@ -21,6 +21,7 @@ PORTAGE_TMPDIR=/var/tmp
 # Fetching command (5 tries, passive ftp for firewall compatibility)
 FETCHCOMMAND="/usr/bin/wget -t 5 -T 60 --passive-ftp -O \${DISTDIR}/\${FILE} \${URI}"
 RESUMECOMMAND="/usr/bin/wget -c -t 5 -T 60 --passive-ftp -O \${DISTDIR}/\${FILE} \${URI}"
+FETCHCOMMAND_FILE="/usr/bin/fetch_file \${URI} \${DISTDIR}/\${FILE}"
 
 # Default user options
 FEATURES="distlocks metadata-transfer sandbox sfperms strict unmerge-orphans userfetch noauto"

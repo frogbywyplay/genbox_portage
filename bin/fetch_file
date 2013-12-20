@@ -1,0 +1,5 @@
+#!/bin/bash
+
+SRC="${1#file://}"
+cp -a "${SRC}" "${2}"
+
