@@ -25,6 +25,7 @@ if "merge" in pargs:
 	os.environ["FEATURES"] = os.environ.get("FEATURES", "") + " -noauto"
 
 os.environ["PORTAGE_CALLER"]="ebuild"
+os.environ["SCM_WORKDIR"] = os.environ.get("SCM_WORKDIR", "True")
 try:
 	import portage
 except ImportError:
