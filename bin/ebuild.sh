@@ -161,13 +161,17 @@ useq() {
 }
 
 has_version() {
+        local local_root="${ROOT}"
+        if [ $# -eq 2 ]; then
+	        local_root="$2"
+        fi
 	if [ "${EBUILD_PHASE}" == "depend" ]; then
 		die "portageq calls (has_version calls portageq) are not allowed in the global scope"
 	fi
 	# return shell-true/shell-false if exists.
 	# Takes single depend-type atoms.
 	PYTHONPATH="${PORTAGE_PYM_PATH}:${PYTHONPATH}" \
-	"${PORTAGE_BIN_PATH}"/portageq has_version "${ROOT}" "$1"
+	"${PORTAGE_BIN_PATH}"/portageq has_version "${local_root}" "$1"
 	local retval=$?
 	case "${retval}" in
 		0)
@@ -180,6 +184,11 @@ has_version() {
 			die "unexpected portageq exit code: ${retval}"
 			;;
 	esac
+}
+
+host_has_version() {
+        has_version "$1" "/"
+        return $?
 }
 
 portageq() {
