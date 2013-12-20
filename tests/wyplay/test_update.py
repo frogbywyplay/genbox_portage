@@ -69,17 +69,34 @@ class WyplayUpdateTestCase(TestCase):
         
     def testPortdirUpdate(self):
         self.assertEqual(1, len(self.vartree.getnode('test-update/a')))
+        self.assertEqual(0, len(self.vartree.getnode('test-update/aa')))
         # root argument is only available through patch
-        _global_updates(self.trees, None, self.tgt_root)
+        _global_updates(self.trees, {}, self.tgt_root)
+        
         self.assertEqual(0, len(self.vartree.getnode('test-update/a')))
+        self.assertEqual(1, len(self.vartree.getnode('test-update/aa')))
 
     def testOverlayUpdate(self):
         self.assertEqual(1, len(self.vartree.getnode('test-update/b')))
-        # do update
+        self.assertEqual(0, len(self.vartree.getnode('test-update/e')))
+
+        # root argument is only available through patch
+        _global_updates(self.trees, {}, self.tgt_root)
+
         self.assertEqual(0, len(self.vartree.getnode('test-update/b')))
+        self.assertEqual(1, len(self.vartree.getnode('test-update/e')))
 
     def testProfileUpdate(self):
         self.assertEqual(1, len(self.vartree.getnode('test-update/c')))
-        # do update
+        self.assertEqual(1, len(self.vartree.getnode('test-update/d')))
+        self.assertEqual(0, len(self.vartree.getnode('test-update/cc')))
+        self.assertEqual(0, len(self.vartree.getnode('test-update/dd')))
+
+        # root argument is only available through patch
+        _global_updates(self.trees, {}, self.tgt_root)
+
         self.assertEqual(0, len(self.vartree.getnode('test-update/c')))
+        self.assertEqual(0, len(self.vartree.getnode('test-update/d')))
+        self.assertEqual(1, len(self.vartree.getnode('test-update/cc')))
+        self.assertEqual(1, len(self.vartree.getnode('test-update/dd')))
         

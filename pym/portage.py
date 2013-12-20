@@ -9774,7 +9774,7 @@ def portageexit():
 
 atexit_register(portageexit)
 
-def _global_updates(trees, prev_mtimes):
+def _global_updates(trees, prev_mtimes, root):
 	"""
 	Perform new global updates if they exist in $PORTDIR/profiles/updates/.
 
@@ -9791,18 +9791,26 @@ def _global_updates(trees, prev_mtimes):
 	global secpass
 	if secpass < 2 or "SANDBOX_ACTIVE" in os.environ:
 		return
-	mysettings = trees["/"]["vartree"].settings
-	updpath = os.path.join(mysettings["PORTDIR"], "profiles", "updates")
+	mysettings = trees[root]["vartree"].settings
 
-	try:
-		if mysettings["PORTAGE_CALLER"] == "fixpackages":
-			update_data = grab_updates(updpath)
-		else:
-			update_data = grab_updates(updpath, prev_mtimes)
-	except portage_exception.DirectoryNotFound:
-		writemsg("--- 'profiles/updates' is empty or " + \
-			"not available. Empty portage tree?\n", noiselevel=1)
-		return
+        update_data = []
+        # start with profiles
+        pp = [os.path.join(ii, "updates") for ii in mysettings.profiles]
+        pp.reverse()
+	pp.append(os.path.join(mysettings["PORTDIR"], "profiles", "updates"))
+
+        pp += [os.path.join(ii, "profiles", "updates") for ii in mysettings["PORTDIR_OVERLAY"].split()]
+
+        for updpath in pp:
+                try:
+                        if mysettings["PORTAGE_CALLER"] == "fixpackages":
+                                update_data += grab_updates(updpath)
+                        else:
+                                update_data += grab_updates(updpath, prev_mtimes)
+                except portage_exception.DirectoryNotFound:
+                        writemsg("--- 'profiles/updates' is empty or " + \
+                                 "not available. Empty portage tree?\n", noiselevel=1)
+
 	myupd = None
 	if len(update_data) > 0:
 		do_upgrade_packagesmessage = 0
@@ -9824,15 +9832,15 @@ def _global_updates(trees, prev_mtimes):
 				for msg in errors:
 					writemsg("%s\n" % msg, noiselevel=-1)
 
-		update_config_files("/",
+		update_config_files(mysettings.get("PORTAGE_CONFIGROOT", ""),
 			mysettings.get("CONFIG_PROTECT","").split(),
 			mysettings.get("CONFIG_PROTECT_MASK","").split(),
 			myupd)
 
-		trees["/"]["bintree"] = binarytree("/", mysettings["PKGDIR"],
+		trees[root]["bintree"] = binarytree(root, mysettings["PKGDIR"],
 			settings=mysettings)
-		vardb = trees["/"]["vartree"].dbapi
-		bindb = trees["/"]["bintree"].dbapi
+		vardb = trees[root]["vartree"].dbapi
+		bindb = trees[root]["bintree"].dbapi
 		if not os.access(bindb.bintree.pkgdir, os.W_OK):
 			bindb = None
 		for update_cmd in myupd:
