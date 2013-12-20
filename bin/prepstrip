@@ -30,12 +30,24 @@ if hasq installsources ${FEATURES} && ! type -P debugedit >/dev/null ; then
 	ewarn "be found. This feature will not work unless debugedit is installed!"
 fi
 
+unset ${!INODE_*}
+
+inode_var_name() {
+	if  [[ $USERLAND = BSD ]] ; then
+		stat -f 'INODE_%d_%i' "$1"
+	else
+		stat -c 'INODE_%d_%i' "$1"
+	fi
+}
+
 save_elf_sources() {
 	hasq installsources ${FEATURES} || return 0
 	hasq installsources ${RESTRICT} && return 0
 	type -P debugedit >/dev/null || return 0
 
 	local x=$1
+	local inode=$(inode_var_name "$x")
+	[[ -n ${!inode} ]] && return 0
 	local sources_dir=/usr/src/debug/${CATEGORY}/${PF}
 	debugedit -b "${WORKDIR}" -d "${sources_dir}" \
 		-l "${T}"/debug.sources "${x}"
@@ -56,12 +68,30 @@ save_elf_debug() {
 	# dont save debug info twice
 	[[ ${x} == *".debug" ]] && return 0
 
+	# this will recompute the build-id, but for now that's ok
+	local buildid="$( type -P debugedit >/dev/null && debugedit -i "${x}" )"
+
 	mkdir -p $(dirname "${y}")
-	${OBJCOPY} --only-keep-debug "${x}" "${y}"
-	${OBJCOPY} --add-gnu-debuglink="${y}" "${x}"
-	[[ -g ${x} ]] && chmod go-r "${y}"
-	[[ -u ${x} ]] && chmod go-r "${y}"
-	chmod a-x,o-w "${y}"
+
+	local inode=$(inode_var_name "$x")
+	if [[ -n ${!inode} ]] ; then
+		ln "${D}usr/lib/debug/${!inode:${#D}}.debug" "$y"
+	else
+		eval $inode=\$x
+		${OBJCOPY} --only-keep-debug "${x}" "${y}"
+		${OBJCOPY} --add-gnu-debuglink="${y}" "${x}"
+		[[ -g ${x} ]] && chmod go-r "${y}"
+		[[ -u ${x} ]] && chmod go-r "${y}"
+		chmod a-x,o-w "${y}"
+	fi
+
+	if [[ -n ${buildid} ]] ; then
+		local buildid_dir="${D}usr/lib/debug/.build-id/${buildid:0:2}"
+		local buildid_file="${buildid_dir}/${buildid:2}"
+		mkdir -p "${buildid_dir}"
+		ln -s "../../${x:${#D}}.debug" "${buildid_file}.debug"
+		ln -s "/${x:${#D}}" "${buildid_file}"
+	fi
 }
 
 # The existance of the section .symtab tells us that a binary is stripped.
@@ -69,12 +99,25 @@ save_elf_debug() {
 # They prevent us from getting the splitdebug data.
 if ! hasq binchecks ${RESTRICT} && \
 	! hasq strip ${RESTRICT} ; then
-	f=$(scanelf -yqRBF '#k%F' -k '!.symtab' "$@")
-	if [[ -n ${f} ]] ; then
+	log=$T/scanelf-already-stripped.log
+	scanelf -yqRBF '#k%F' -k '!.symtab' "$@" | sed -e "s#^$D##" > "$log"
+	if [[ -n $QA_PRESTRIPPED && -s $log && \
+		${QA_STRICT_PRESTRIPPED-unset} = unset ]] ; then
+		shopts=$-
+		set -o noglob
+		for x in $QA_PRESTRIPPED ; do
+			sed -e "s#^${x#/}\$##" -i "$log"
+		done
+		set +o noglob
+		set -$shopts
+	fi
+	sed -e "/^\$/d" -e "s#^#/#" -i "$log"
+	if [[ -s $log ]] ; then
 		vecho -e "\a\n"
 		eqawarn "QA Notice: Pre-stripped files found:"
-		eqawarn "${f}"
-		echo "${f}" > "${T}"/scanelf-already-stripped.log
+		eqawarn "$(<"$log")"
+	else
+		rm -f "$log"
 	fi
 fi
 
@@ -98,7 +141,7 @@ do
 		set -o noglob
 		strip_this=true
 		for m in $(eval echo ${STRIP_MASK}) ; do
-			[[ ${x} == ${m} ]] && strip_this=false && break
+			[[ /${x#${D}} == ${m} ]] && strip_this=false && break
 		done
 		set +o noglob
 	else
