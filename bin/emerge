@@ -671,6 +671,8 @@ class search:
 						if myebuild:
 							print "      %s %s" % \
 								(darkgreen("Size of files:"), file_size_str)
+                                                        print "     ", darkgreen("Overlay:")+"      ",os.path.normpath('%s/../../../' % myebuild)
+							print "     ", darkgreen("Path:")+"	    ",os.path.normpath(myebuild) 
 						print "     ", darkgreen("Homepage:")+"     ",homepage
 						print "     ", darkgreen("Description:")+"  ",desc
 						print "     ", darkgreen("License:")+"      ",license
