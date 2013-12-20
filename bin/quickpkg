@@ -15,6 +15,17 @@ def tar_contents(contents, root, tar, protect=None, onProgress=None):
 	if onProgress:
 		onProgress(maxval, 0)
 	paths = contents.keys()
+	restricted_pkg = os.getenv('RESTRICTED_PKG')
+	if restricted_pkg is not None:
+		restricted_paths = []
+		for path in paths:
+			if path.startswith(root + 'redist'):
+				restricted_paths.append(path)
+				if not path.endswith(root + 'redist'): # else redist dir is duplicated in tbz2
+					restricted_path = path.replace('/redist/', '/')
+					if restricted_path in contents:
+						restricted_paths.append(restricted_path)
+		paths = restricted_paths[:]
 	paths.sort()
 	for path in paths:
 		curval += 1
