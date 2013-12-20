@@ -93,7 +93,7 @@ try:
 	  MOVE_BINARY, PRELINK_BINARY, WORLD_FILE, MAKE_CONF_FILE, MAKE_DEFAULTS_FILE, \
 	  DEPRECATED_PROFILE_FILE, USER_VIRTUALS_FILE, EBUILD_SH_ENV_FILE, \
 	  INVALID_ENV_FILE, CUSTOM_MIRRORS_FILE, CONFIG_MEMORY_FILE,\
-	  INCREMENTALS, EAPI, MISC_SH_BINARY
+	  INCREMENTALS, EAPI, MISC_SH_BINARY, MAKE_CONF_ALLOW_EXPAND
 
 	from portage_data import ostype, lchown, userland, secpass, uid, wheelgid, \
 	                         portage_uid, portage_gid, userpriv_groups
@@ -1376,11 +1376,13 @@ class config:
 					self.mygcfg = {}
 			self.configlist.append(self.mygcfg)
 			self.configdict["defaults"]=self.configlist[-1]
-			
+			mygcfg = {}
+                        for kk in MAKE_CONF_ALLOW_EXPAND:
+                                if self.mygcfg.has_key(kk):
+                                        mygcfg[kk] = self.mygcfg[kk]
+                        self.mygcfg = mygcfg
 			if target_root is not None:
-				self.mygcfg = {'ROOT': target_root}
-			else:
-				self.mygcfg = {}
+				self.mygcfg['ROOT'] = target_root
 			
 			self.mygcfg = getconfig(
 				os.path.join(config_root, MAKE_CONF_FILE.lstrip(os.path.sep)),

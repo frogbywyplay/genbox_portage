@@ -65,6 +65,8 @@ MANIFEST1_REQUIRED_HASH = "MD5"
 MANIFEST2_REQUIRED_HASH = "SHA1"
 
 MANIFEST2_IDENTIFIERS = ["AUX","MISC","DIST","EBUILD"]
+
+MAKE_CONF_ALLOW_EXPAND = ['EHG_BASE_URI', 'EGIT_BASE_URI']
 # ===========================================================================
 # END OF CONSTANTS -- END OF CONSTANTS -- END OF CONSTANTS -- END OF CONSTANT
 # ===========================================================================
