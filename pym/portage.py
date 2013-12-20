@@ -1265,11 +1265,7 @@ class config:
 							parentPath = normalize_path(os.path.join(
 								currentPath, parentPath))
 							if os.path.exists(parentPath):
-								addProfile(parentPath)
-							else:
-								raise portage_exception.ParseError(
-									"Parent '%s' not found: '%s'" %  \
-									(parentPath, parentsFile))
+                                                                addProfile(parentPath)
 					self.profiles.append(currentPath)
 				try:
 					addProfile(os.path.realpath(self.profile_path))
