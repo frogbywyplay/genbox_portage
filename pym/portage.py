@@ -1287,9 +1287,9 @@ class config:
 					self.profiles.append(custom_prof)
 				del custom_prof
 
-			self.packages_list = [grabfile_package(os.path.join(x, "packages")) for x in self.profiles]
-			self.packages      = stack_lists(self.packages_list, incremental=1)
-			del self.packages_list
+                        self.packages_list = [grabfile_package(os.path.join(x, "packages")) for x in self.profiles]
+                        self.packages      = stack_lists(self.packages_list, incremental=1)
+                        del self.packages_list
 			#self.packages = grab_stacked("packages", self.profiles, grabfile, incremental_lines=1)
 
 			# revmaskdict
@@ -6863,7 +6863,10 @@ class portdbapi(dbapi):
 				self.manifestVerifier = portage_gpg.FileChecker(self.mysettings["PORTAGE_GPG_DIR"], "gentoo.gpg", requireSignedRing=True, minimumTrust=self.manifestVerifyLevel)
 			else:
 				self.manifestVerifier = portage_gpg.FileChecker(self.mysettings["PORTAGE_GPG_DIR"], "gentoo.gpg", minimumTrust=self.manifestVerifyLevel)
-
+                
+                if "nopackages" in self.mysettings.features:
+                        self.mysettings.prevmaskdict = {}
+                
 		#self.root=settings["PORTDIR"]
 		self.porttree_root = os.path.realpath(porttree_root)
 
