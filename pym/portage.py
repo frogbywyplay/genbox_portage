@@ -9657,6 +9657,15 @@ def pkgmerge(mytbz2, myroot, mysettings, mydbapi=None, vartree=None, prev_mtimes
 				gid=portage_gid, mode=0755)
 		writemsg_stdout(">>> Extracting info\n")
 		xptbz2.unpackinfo(infloc)
+                # 2014-01-03: Wyplay: Q&D hack to update environment.bz2 according to target name
+                if myroot != '/':
+                        writemsg_stdout(">>> Fixing environment\n")
+                        spawn("""bzip2 -d %(infloc)s/environment.bz2 &&
+                        sed -i 's|/usr/targets/[^/]*/|%(tgtpath)s/|g' %(infloc)s/environment &&
+                        bzip2 %(infloc)s/environment""" % {'infloc': infloc,
+                                                         'tgtpath': os.path.normpath('%s/..' % myroot)},
+                              mysettings, free=1)
+
 		mysettings.setcpv(mycat + "/" + mypkg, mydb=mydbapi)
 		# Store the md5sum in the vdb.
 		fp = open(os.path.join(infloc, "BINPKGMD5"), "w")
