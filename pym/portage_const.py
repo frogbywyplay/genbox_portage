@@ -14,6 +14,7 @@ VDB_PATH                = "var/db/pkg"
 PRIVATE_PATH            = "var/lib/portage"
 CACHE_PATH              = "/var/cache/edb"
 DEPCACHE_PATH           = CACHE_PATH+"/dep"
+SYNCCACHE_PATH          = "/var/cache/sync-cache"
 
 USER_CONFIG_PATH        = "/etc/portage"
 MODULES_FILE_PATH       = USER_CONFIG_PATH+"/modules"

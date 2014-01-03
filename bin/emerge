@@ -5103,7 +5103,11 @@ class GITSyncer(SCMSyncer):
 
 class HGSyncer(SCMSyncer):
 	def __init__(self, settings, myportdir_id, myportdir):
+                import md5
 		SCMSyncer.__init__(self, settings, myportdir_id, myportdir)
+                # 2014-01-03: wyplay: SYNCCACHE_PATH is "/var/cache/sync-cache"
+                self.__cache_dir = '%s/%s' % (portage_const.SYNCCACHE_PATH, md5.md5(self.uri).hexdigest())
+
 	def initial_import(self):
 		print "Doing initial import"
 		myportdir = self.myportdir
@@ -5116,10 +5120,23 @@ class HGSyncer(SCMSyncer):
 				sys.exit(1)
 			del e
 		# initialize hg repository
-		if portage.spawn('/usr/bin/hg clone -U "%s" "%s"' % (self.uri, myportdir), self.settings, free=1):
-			sys.stderr.write("!!! hg clone error; exiting.\n")
+                # check if cache is present
+                cache_top = os.path.dirname(self.__cache_dir)
+                if not os.path.exists(cache_top):
+                        os.makedirs(cache_top)
+                if not os.path.exists(self.__cache_dir):
+                        if portage.spawn('/usr/bin/hg clone -U "%s" "%s"' % (self.uri, self.__cache_dir), self.settings, free=1):
+                                sys.stderr.write("!!! hg cache clone error; exiting.\n")
+                                sys.exit(1)
+                else:
+                        if portage.spawn('/usr/bin/hg -R "%s" pull' % (self.__cache_dir), self.settings, free = 1):
+                                sys.stderr.write("!!! hg cache pull error; exiting.\n")
+                                sys.exit(1)
+
+		if portage.spawn('/usr/bin/rsync -az "%s/" "%s"' % (self.__cache_dir, myportdir), self.settings, free=1):
+			sys.stderr.write("!!! hg rsync error; exiting.\n")
 			sys.exit(1)
-	
+        
 	def pull(self):
 		print ">>> Pulling changes ..."
 		# pull changeset from server
