@@ -308,14 +308,19 @@ def dir_get_list(baseurl,conn=None):
 			listing = parser.get_anchors()
 		else:
                         # 2014-01-03: Wyplay: fallback to wyplay.idx if directory listing is not possible
-                        page,rc,msg = make_http_request(conn, '%s/wyplay.idx' % address, params, headers)
-                        if not page:
+                        try:
+                                page,rc,msg = make_http_request(conn, '%s/wyplay.idx' % address, params, headers)
+                                if not page:
+                                        import portage_exception
+                                        raise portage_exception.PortageException(
+                                                "Unable to get listing: %s %s" % (rc,msg))
+                                else:
+                                        listing = page.split()
+                        except:
                                 import portage_exception
                                 raise portage_exception.PortageException(
-                                        "Unable to get listing: %s %s" % (rc,msg))
-                        else:
-                                listing = page.split()
-        
+                                                "Unable to get listing from: %s/wyplay.idx" % address)
+                                
 	elif protocol in ["ftp"]:
 		if address[-1] == '/':
 			olddir = conn.pwd()
