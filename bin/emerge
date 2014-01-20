@@ -1721,14 +1721,38 @@ class depgraph:
 									     priority=priority)
 					return 1
 				else:
-					if jbigkey in self._slot_collision_nodes:
-						return 1
-					# A slot collision has occurred.  Sometimes this coincides
-					# with unresolvable blockers, so the slot collision will be
-					# shown later if there are no unresolvable blockers.
-					self._slot_collision_info.add((slot_atom, myroot))
-					self._slot_collision_nodes.add(jbigkey)
-					slot_collision = True
+					if metadata.has_key('strict'):
+						# XXX doge says: wow so much stuff just to replace a node, very unconvenient
+						# check if existing node has already a restriction on its version
+						# in this case => version collision :/
+						[already_strict] = self.mydbapi[myroot].aux_get(e_cpv, ['strict'])
+						if already_strict:
+							if jbigkey in self._slot_collision_nodes:
+								return 1
+							self._slot_collision_info.add((slot_atom, myroot))
+							self._slot_collision_nodes.add(jbigkey)
+							slot_collision = True
+						else:
+							self.mydbapi[myroot].cpv_remove(e_cpv)
+							self.mydbapi[myroot].cpv_inject(mykey, metadata=metadata)
+							self.pkg_node_map[myroot][mykey] = jbigkey
+							self._slot_node_map[myroot][slot_atom] = jbigkey
+							existing_parents = self.digraph.parent_nodes(existing_node)
+							for parent in existing_parents:
+								self._parent_child_digraph.add(jbigkey, parent)
+								self.digraph.addnode(jbigkey, parent, priority=priority)
+							self._parent_child_digraph.remove(existing_node)
+							self.digraph.remove(existing_node)
+
+					else:
+						if jbigkey in self._slot_collision_nodes:
+							return 1
+						# A slot collision has occurred.  Sometimes this coincides
+						# with unresolvable blockers, so the slot collision will be
+						# shown later if there are no unresolvable blockers.
+						self._slot_collision_info.add((slot_atom, myroot))
+						self._slot_collision_nodes.add(jbigkey)
+						slot_collision = True
 
 			if slot_collision:
 				# Now add this node to the graph so that self.display()
@@ -2432,6 +2456,9 @@ class depgraph:
 				mypriority = priority.copy()
 				if vardb.match(x):
 					mypriority.satisfied = True
+				if x.startswith('='):
+					selected_pkg[1]['strict'] = True
+
 				if not self.create(selected_pkg[0], myparent=myparent,
 					metadata=selected_pkg[1], priority=mypriority,
 					rev_dep=rev_deps, arg=arg):
