@@ -5086,7 +5086,7 @@ class GITSyncer(SCMSyncer):
                 if portage.spawn("cd %s; /usr/bin/git remote add origin %s ; /usr/bin/git remote update" % (myportdir, self.uri), self.settings, free=1):
                         sys.stderr.write("!!! git remote failed !!!")
                         sys.exit(1)
-                if self.revision:
+                if self.revision and self.revision != self.branch:
                         retval = portage.spawn("cd %(myportdir)s; /usr/bin/git checkout -b %(branch)s %(revision)s" % {'myportdir': myportdir, 'branch': self.branch, 'revision': self.revision}, self.settings, free=1)
 		else:
                         retval = portage.spawn("cd %(myportdir)s; /usr/bin/git checkout -b %(branch)s origin/%(branch)s" % {'myportdir': myportdir, 'branch': self.branch}, self.settings, free=1)
