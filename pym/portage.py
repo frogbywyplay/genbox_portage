@@ -843,6 +843,15 @@ def env_update(makelinks=1, target_root=None, prev_mtimes=None, contents=None,
 				os.system("cd / ; %s -r '%s'" % (ldconfig, target_root))
 			else:
 				os.system("cd / ; %s -X -r '%s'" % (ldconfig, target_root))
+			if "ROOT" in os.environ:
+			        writemsg(">>> Regenerating %setc/redist/ld.so.cache...\n" % target_root)
+				# We get ld.so.conf from the dev rootfs
+				os.system("cp %s/etc/ld.so.conf %s/redist/etc" % (target_root, target_root))
+				if makelinks:
+					os.system("cd / ; %s -r '%s'" % (ldconfig, target_root + '/redist'))
+				else:
+					os.system("cd / ; %s -X -r '%s'" % (ldconfig, target_root + '/redist'))
+
 		elif ostype in ("FreeBSD","DragonFly"):
 			writemsg(">>> Regenerating %svar/run/ld-elf.so.hints...\n" % \
 				target_root)
