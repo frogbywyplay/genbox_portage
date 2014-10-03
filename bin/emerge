@@ -5065,6 +5065,14 @@ class GITSyncer(SCMSyncer):
 		SCMSyncer.__init__(self, settings, myportdir_id, myportdir)
 		self.wc_branch = "wip"
 
+	def clean_initial(self):
+		print "\nRemoving %s"%self.myportdir
+		import shutil
+		try:
+			shutil.rmtree(self.myportdir)
+		except OSError, e:
+			sys.stderr.write("!!! %s"%str(e))
+
 	def initial_import(self):
 		print "Doing initial import"
 		myportdir = self.myportdir
@@ -5076,27 +5084,28 @@ class GITSyncer(SCMSyncer):
 					"!!! existing '%s' directory; exiting.\n" % myportdir)
 				sys.exit(1)
 			del e
-                # initialize git repository
-                # we can't use git clone since there is no way to avoid 'default' branch
-                if portage.spawn("mkdir -p %s && cd %s && /usr/bin/git init" % (myportdir, myportdir), self.settings, free=1):
-                        sys.stderr.write("!!! git init failed !!!")
-                        sys.exit(1)
-                
-                # add remote and update
-                if portage.spawn("cd %s; /usr/bin/git remote add origin %s ; /usr/bin/git remote update" % (myportdir, self.uri), self.settings, free=1):
-                        sys.stderr.write("!!! git remote failed !!!")
-                        sys.exit(1)
-                if self.revision and self.revision != self.branch:
-                        retval = portage.spawn("cd %(myportdir)s; /usr/bin/git checkout -b %(branch)s %(revision)s" % {'myportdir': myportdir, 'branch': self.branch, 'revision': self.revision}, self.settings, free=1)
-		else:
-                        retval = portage.spawn("cd %(myportdir)s; /usr/bin/git checkout -b %(branch)s origin/%(branch)s" % {'myportdir': myportdir, 'branch': self.branch}, self.settings, free=1)
-                if retval:
-                        sys.stderr.write("!!! git checkout failed !!!")
-                        sys.exit(1)
-                # track upstream branch
-                if portage.spawn("cd %s; /usr/bin/git branch -q -u origin/%s" % (myportdir, self.branch), self.settings, free=1):
-                        sys.stderr.write("!!! git setting upstream branch failed !!!")
-                        sys.exit(1)
+		try:
+			# initialize git repository
+			# we can't use git clone since there is no way to avoid 'default' branch
+			if portage.spawn("mkdir -p %s && cd %s && /usr/bin/git init" % (myportdir, myportdir), self.settings, free=1):
+				raise Exception("!!! git init failed !!!")
+
+			# add remote and update
+			if portage.spawn("cd %s; /usr/bin/git remote add origin %s ; /usr/bin/git remote update" % (myportdir, self.uri), self.settings, free=1):
+				raise Exception("!!! git remote failed !!!")
+			if self.revision and self.revision != self.branch:
+				retval = portage.spawn("cd %(myportdir)s; /usr/bin/git checkout -b %(branch)s %(revision)s" % {'myportdir': myportdir, 'branch': self.branch, 'revision': self.revision}, self.settings, free=1)
+			else:
+				retval = portage.spawn("cd %(myportdir)s; /usr/bin/git checkout -b %(branch)s origin/%(branch)s" % {'myportdir': myportdir, 'branch': self.branch}, self.settings, free=1)
+			if retval:
+				raise Exception("!!! git checkout failed !!!")
+			# track upstream branch
+			if portage.spawn("cd %s; /usr/bin/git branch -q -u origin/%s" % (myportdir, self.branch), self.settings, free=1):
+				raise Exception("!!! git setting upstream branch failed !!!")
+		except Exception, e:
+			sys.stderr.write(str(e))
+			self.clean_initial()
+			sys.exit(1)
         
 	def update(self):
 		print "Doing update"
