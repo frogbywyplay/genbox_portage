@@ -8446,9 +8446,12 @@ class dblink:
 						# Remove permissions to ensure that any hardlinks to
 						# suid/sgid files are rendered harmless.
 
-						# do not chmod 0 if in /redist/chroot/
-						if not file_name.startswith(normalize_path(dest_root + portage_const.WYPLAY_CHROOT_DIR) + '/'):
-							#writemsg_stdout("os.chmod" + file_name + "0", 1)
+						# do not chmod 0 if in chroot/ or lxc/
+						for a_dir in portage_const.WYPLAY_ALCATRAZ_DIRS:
+							if file_name.startswith(normalize_path(dest_root + a_dir) + '/'):
+								break
+						else:
+							writemsg_stdout("os.chmod" + file_name + "0", 1)
 							os.chmod(file_name, 0)
 					os.unlink(file_name)
 				finally:
@@ -9360,10 +9363,12 @@ class dblink:
 							bsd_chflags.lchflags(mydest, dflags)
 
 						# override existing directory owner/mode
-						if myrealdest.startswith(normalize_path(portage_const.WYPLAY_CHROOT_DIR) + '/'):
-							#writemsg_stdout("override chmod " + mydest + " " + oct(mystat[0]), 1)
-							os.chmod(mydest,mystat[0])
-							os.chown(mydest,mystat[4],mystat[5])
+						for a_dir in portage_const.WYPLAY_ALCATRAZ_DIRS:
+							if myrealdest.startswith(normalize_path(a_dir) + '/'):
+								#writemsg_stdout("override chmod " + mydest + " " + oct(mystat[0]), 1)
+								os.chmod(mydest,mystat[0])
+								os.chown(mydest,mystat[4],mystat[5])
+								break
 					else:
 						# a non-directory and non-symlink-to-directory.  Won't work for us.  Move out of the way.
 						if movefile(mydest,mydest+".backup", mysettings=self.settings) is None:

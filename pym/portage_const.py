@@ -69,7 +69,7 @@ MANIFEST2_IDENTIFIERS = ["AUX","MISC","DIST","EBUILD"]
 
 MAKE_CONF_ALLOW_EXPAND = ['EHG_BASE_URI', 'EGIT_BASE_URI']
 
-WYPLAY_CHROOT_DIR = "/redist/chroot"
+WYPLAY_ALCATRAZ_DIRS = ["/chroot", "/lxc", "/redist/chroot", "/redist/lxc"]
 
 # ===========================================================================
 # END OF CONSTANTS -- END OF CONSTANTS -- END OF CONSTANTS -- END OF CONSTANT
