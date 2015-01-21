@@ -8678,6 +8678,7 @@ class dblink:
 			file_paths.update(dblnk.getcontents())
 		inode_map = {}
 		real_paths = set()
+		dest_root = normalize_path(self.vartree.root).rstrip(os.path.sep) + os.path.sep
 		for path in file_paths:
 			try:
 				s = os.lstat(path)
@@ -8702,7 +8703,17 @@ class dblink:
 			if len(path_list) == s.st_nlink:
 				# All hardlinks seem to be owned by this package.
 				continue
-			suspicious_hardlinks.append(path_list)
+			# Wyplay hook
+			alcatraz = False
+			for (tmp_p, tmp_s) in path_list:
+				for a_dir in portage_const.WYPLAY_ALCATRAZ_DIRS:
+					if tmp_p.startswith(normalize_path(dest_root + a_dir) + '/'):
+						alcatraz = True
+						break
+				if alcatraz:
+					break
+			if not alcatraz:
+				suspicious_hardlinks.append(path_list)
 		if not suspicious_hardlinks:
 			return 0
 		from output import colorize
