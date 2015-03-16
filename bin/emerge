@@ -7174,6 +7174,10 @@ def emerge_main():
 						portage_group_warning()
 					return 1
 
+	if settings.get("PROFILE_DEBUG", "") == "1":
+		from pprint import pprint
+		pprint(settings.profiles)
+
 	disable_emergelog = False
 	for x in ("--pretend", "--fetchonly", "--fetch-all-uri"):
 		if x in myopts:
