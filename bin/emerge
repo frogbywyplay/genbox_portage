@@ -64,6 +64,8 @@ try:
 except ImportError:
 	import pickle as cPickle
 
+from portage_wyplay import Lockdir
+
 class stdout_spinner(object):
 	scroll_msgs = [
 		"Gentoo Rocks ("+os.uname()[0]+")",
@@ -5142,7 +5144,6 @@ class GITSyncer(SCMSyncer):
 		else:
 			self.update()
 
-		
 
 class HGSyncer(SCMSyncer):
 	def __init__(self, settings, myportdir_id, myportdir):
@@ -5251,6 +5252,12 @@ PROTO_SYNCER={'svn': SVNSyncer,
 
 def action_sync(settings, trees, mtimedb, myopts, myaction):
 	portages=[settings.get("PORTDIR", None)]
+	if os.getenv("LOCKSYNC", ""):
+		#XXX Wyplay lock to avoid // sync issues (#40916)
+		lock = Lockdir(portages[0], name="action_sync")
+		if not lock.waitlock():
+			sys.stderr.write("!!! %s locked for too long, exiting"%myportdir)
+			sys.exit(1)
 	if "PORTDIR_OVERLAY" in settings:
 		portages.extend(settings.get("PORTDIR_OVERLAY", None).split())
 	for myportdir in portages:
@@ -5259,6 +5266,8 @@ def action_sync(settings, trees, mtimedb, myopts, myaction):
 		else:
 			print green(" * "),"Updating portage "+blue(bold(myportdir))
 		portdir_action_sync(settings, trees, mtimedb, myopts, myaction, myportdir)
+	if os.getenv("LOCKSYNC", ""):
+		lock.unlock()
 	
 def portdir_action_sync(settings, trees, mtimedb, myopts, myaction, myportdir):
 	xterm_titles = "notitles" not in settings.features
