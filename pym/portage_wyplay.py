@@ -27,16 +27,21 @@ def wylog(msg):
 
 class Lockdir(object):
 
-	def __init__(self, dir_path, name, wait_timeout=60, lock_duration=60):
+	def __init__(self, dir_path, name, wait_timeout=60*5, lock_duration=60*5):
 		"""
 		file based lock to protect a portage dir.
 		since portage can exit everywhare, lock has a duration
 		"""
 		self._wait_timeout = wait_timeout
 		self._lock_duration = lock_duration
-		self._lock = os.path.join(dir_path, name+".LOCK")
+		if not os.path.isdir(dir_path):
+			self._lock = None
+		else:
+			self._lock = os.path.join(dir_path, name+".LOCK")
 
 	def __delete_lock(self):
+		if not self._lock:
+			return
 		try:
 			out.ewarn("Unlocking %s..."%self._lock)
 			os.unlink(self._lock)
@@ -45,6 +50,8 @@ class Lockdir(object):
 			sys.exit(1)
 
 	def _get_locked(self):
+		if not self._lock:
+			return False
 		if os.path.exists(self._lock):
 			ctime = os.path.getctime(self._lock)
 			now = time.time()
@@ -65,6 +72,8 @@ class Lockdir(object):
 	locked = property(_get_locked)
 
 	def lock(self):
+		if not self._lock:
+			return False
 		if self.locked:
 			return False
 		else:
@@ -80,6 +89,8 @@ class Lockdir(object):
 			self.__delete_lock()
 
 	def waitlock(self):
+		if not self._lock:
+			return True
 		loop = 0
 		loop_duration = 5
 		max_loop = int(self._wait_timeout / loop_duration)
