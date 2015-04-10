@@ -5256,7 +5256,7 @@ def action_sync(settings, trees, mtimedb, myopts, myaction):
 		#XXX Wyplay lock to avoid // sync issues (#40916)
 		lock = Lockdir(portages[0], name="action_sync")
 		if not lock.waitlock():
-			sys.stderr.write("!!! %s locked for too long, exiting"%myportdir)
+			sys.stderr.write("!!! %s locked for too long, exiting\n"%portages[0])
 			sys.exit(1)
 	if "PORTDIR_OVERLAY" in settings:
 		portages.extend(settings.get("PORTDIR_OVERLAY", None).split())

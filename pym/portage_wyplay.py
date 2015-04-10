@@ -27,7 +27,7 @@ def wylog(msg):
 
 class Lockdir(object):
 
-	def __init__(self, dir_path, name, wait_timeout=60*5, lock_duration=60*5):
+	def __init__(self, dir_path, name, wait_timeout=60*10, lock_duration=60*30):
 		"""
 		file based lock to protect a portage dir.
 		since portage can exit everywhare, lock has a duration
