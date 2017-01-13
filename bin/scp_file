@@ -1,0 +1,6 @@
+#!/bin/bash
+
+#echo "DEBUG - Remote copying $1 into $2..."
+SSH_URL="${1#ssh://}"
+SRC=${SSH_URL//packages.wyplay.com/packages.wyplay.com:}
+scp -p "${SRC}" "${2}"
