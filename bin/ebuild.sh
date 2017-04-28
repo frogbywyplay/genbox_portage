@@ -367,6 +367,14 @@ unpack() {
 					bzip2 -dc "${srcdir}${x}" > ${x%.*} || die "$myfail"
 				fi
 				;;
+			xz)
+				if [ "${y}" == "tar" ]; then
+					xz -dc "${srcdir}${x}" | tar xof - ${tar_opts}
+					assert "$myfail"
+				else
+					xz -dc "${srcdir}${x}" > ${x%.*} || die "$myfail"
+				fi
+				;;
 			7Z|7z)
 				local my_output
 				my_output="$(7z x -y "${srcdir}${x}")"
