@@ -22,8 +22,8 @@ class cache:
 		# ~harring
 		self.porttrees = [self.porttree_root]+overlays
 		self.porttrees = tuple(map(normalize_path, self.porttrees))
-		self._master_eclass_root = os.path.join(self.porttrees[0],"eclass")
-		self._master_eclasses_overridden = {}
+		self._main_eclass_root = os.path.join(self.porttrees[0],"eclass")
+		self._main_eclasses_overridden = {}
 		self.update_eclasses()
 
 	def close_caches(self):
@@ -42,7 +42,7 @@ class cache:
 	def update_eclasses(self):
 		self.eclasses = {}
 		self._eclass_locations = {}
-		master_eclasses = {}
+		main_eclasses = {}
 		eclass_len = len(".eclass")
 		ignored_listdir_errnos = (errno.ENOENT, errno.ENOTDIR)
 		for x in [normalize_path(os.path.join(y,"eclass")) for y in self.porttrees]:
@@ -65,12 +65,12 @@ class cache:
 				ys=y[:-eclass_len]
 				self.eclasses[ys] = (x, long(mtime))
 				self._eclass_locations[ys] = x
-				if x == self._master_eclass_root:
-					master_eclasses[ys] = mtime
+				if x == self._main_eclass_root:
+					main_eclasses[ys] = mtime
 				else:
-					master_mtime = master_eclasses.get(ys)
-					if master_mtime and master_mtime != mtime:
-						self._master_eclasses_overridden[ys] = x
+					main_mtime = main_eclasses.get(ys)
+					if main_mtime and main_mtime != mtime:
+						self._main_eclasses_overridden[ys] = x
 
 	def is_eclass_data_valid(self, ec_dict):
 		if not isinstance(ec_dict, dict):
@@ -86,7 +86,7 @@ class cache:
 
 		return True
 
-	def get_eclass_data(self, inherits, from_master_only=False):
+	def get_eclass_data(self, inherits, from_main_only=False):
 		ec_dict = {}
 		for x in inherits:
 			try:
@@ -95,8 +95,8 @@ class cache:
 				print "ec=",ec_dict
 				print "inherits=",inherits
 				raise
-			if from_master_only and \
-				self._eclass_locations[x] != self._master_eclass_root:
+			if from_main_only and \
+				self._eclass_locations[x] != self._main_eclass_root:
 				return None
 
 		return ec_dict

@@ -78,7 +78,7 @@ def mirror_cache(valid_nodes_iterable, src_cache, trg_cache, eclass_cache=None, 
 						continue
 				else:
 					entry["_eclasses_"] = eclass_cache.get_eclass_data(entry["INHERITED"].split(), \
-						from_master_only=True)
+						from_main_only=True)
 					if not entry["_eclasses_"]:
 						noise.eclass_stale(x)
 						continue

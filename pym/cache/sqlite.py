@@ -109,14 +109,14 @@ class database(fs_template.FsBased):
 	def _db_table_exists(self, table_name):
 		"""return true/false dependant on a tbl existing"""
 		cursor = self._db_cursor
-		cursor.execute("SELECT name FROM sqlite_master WHERE type=\"table\" AND name=%s" % \
+		cursor.execute("SELECT name FROM sqlite_main WHERE type=\"table\" AND name=%s" % \
 			self._db_escape_string(table_name))
 		return len(cursor.fetchall()) == 1
 
 	def _db_table_get_create(self, table_name):
 		"""return true/false dependant on a tbl existing"""
 		cursor = self._db_cursor
-		cursor.execute("SELECT sql FROM sqlite_master WHERE name=%s" % \
+		cursor.execute("SELECT sql FROM sqlite_main WHERE name=%s" % \
 			self._db_escape_string(table_name))
 		return cursor.fetchall()[0][0]
 

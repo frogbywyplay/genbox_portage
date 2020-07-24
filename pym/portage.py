@@ -2798,8 +2798,8 @@ def spawn(mystring, mysettings, debug=0, free=0, droppriv=0, sesandbox=0, fakero
 	# pseudo-terminal that connects two domains.
 	logfile = keywords.get("logfile")
 	mypids = []
-	master_fd = None
-	slave_fd = None
+	main_fd = None
+	subordinate_fd = None
 	fd_pipes_orig = None
 	got_pty = False
 	if logfile:
@@ -2808,43 +2808,43 @@ def spawn(mystring, mysettings, debug=0, free=0, droppriv=0, sesandbox=0, fakero
 			raise ValueError(fd_pipes)
 		global _disable_openpty
 		if _disable_openpty:
-			master_fd, slave_fd = os.pipe()
+			main_fd, subordinate_fd = os.pipe()
 		else:
 			from pty import openpty
 			try:
-				master_fd, slave_fd = openpty()
+				main_fd, subordinate_fd = openpty()
 				got_pty = True
 			except EnvironmentError, e:
 				_disable_openpty = True
 				writemsg("openpty failed: '%s'\n" % str(e), noiselevel=1)
 				del e
-				master_fd, slave_fd = os.pipe()
+				main_fd, subordinate_fd = os.pipe()
 		if got_pty:
 			# Disable post-processing of output since otherwise weird
 			# things like \n -> \r\n transformations may occur.
 			import termios
-			mode = termios.tcgetattr(slave_fd)
+			mode = termios.tcgetattr(subordinate_fd)
 			mode[1] &= ~termios.OPOST
-			termios.tcsetattr(slave_fd, termios.TCSANOW, mode)
+			termios.tcsetattr(subordinate_fd, termios.TCSANOW, mode)
 
-		# We must set non-blocking mode before we close the slave_fd
+		# We must set non-blocking mode before we close the subordinate_fd
 		# since otherwise the fcntl call can fail on FreeBSD (the child
-		# process might have already exited and closed slave_fd so we
+		# process might have already exited and closed subordinate_fd so we
 		# have to keep it open in order to avoid FreeBSD potentially
 		# generating an EAGAIN exception).
 		import fcntl
-		fcntl.fcntl(master_fd, fcntl.F_SETFL,
-			fcntl.fcntl(master_fd, fcntl.F_GETFL) | os.O_NONBLOCK)
+		fcntl.fcntl(main_fd, fcntl.F_SETFL,
+			fcntl.fcntl(main_fd, fcntl.F_GETFL) | os.O_NONBLOCK)
 
 		fd_pipes.setdefault(0, sys.stdin.fileno())
 		fd_pipes_orig = fd_pipes.copy()
 		if got_pty and os.isatty(fd_pipes_orig[1]):
 			from output import get_term_size, set_term_size
 			rows, columns = get_term_size()
-			set_term_size(rows, columns, slave_fd)
+			set_term_size(rows, columns, subordinate_fd)
 		fd_pipes[0] = fd_pipes_orig[0]
-		fd_pipes[1] = slave_fd
-		fd_pipes[2] = slave_fd
+		fd_pipes[1] = subordinate_fd
+		fd_pipes[2] = subordinate_fd
 		keywords["fd_pipes"] = fd_pipes
 
 	features = mysettings.features
@@ -2883,7 +2883,7 @@ def spawn(mystring, mysettings, debug=0, free=0, droppriv=0, sesandbox=0, fakero
 		mypids.extend(spawn_func(mystring, env=env, **keywords))
 	finally:
 		if logfile:
-			os.close(slave_fd)
+			os.close(subordinate_fd)
 		if sesandbox:
 			selinux.setexec(None)
 
@@ -2893,8 +2893,8 @@ def spawn(mystring, mysettings, debug=0, free=0, droppriv=0, sesandbox=0, fakero
 	if logfile:
 		log_file = open(logfile, 'a')
 		stdout_file = os.fdopen(os.dup(fd_pipes_orig[1]), 'w')
-		master_file = os.fdopen(master_fd, 'r')
-		iwtd = [master_file]
+		main_file = os.fdopen(main_fd, 'r')
+		iwtd = [main_file]
 		owtd = []
 		ewtd = []
 		import array, select
@@ -2913,14 +2913,14 @@ def spawn(mystring, mysettings, debug=0, free=0, droppriv=0, sesandbox=0, fakero
 				if not buf:
 					eof = True
 					break
-				if f is master_file:
+				if f is main_file:
 					buf.tofile(stdout_file)
 					stdout_file.flush()
 					buf.tofile(log_file)
 					log_file.flush()
 		log_file.close()
 		stdout_file.close()
-		master_file.close()
+		main_file.close()
 	pid = mypids[-1]
 	retval = os.waitpid(pid, 0)[1]
 	portage_exec.spawned_pids.remove(pid)
